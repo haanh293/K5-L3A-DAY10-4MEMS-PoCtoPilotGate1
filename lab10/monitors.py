@@ -19,7 +19,39 @@ def escalation_rate(trials):
     return sum(t["status"] == "escalated" for t in trials) / max(1, len(trials))
 
 
+def approval_or_cap_risk_rate(trials):
+    """Tỉ lệ lần chạy chạm tới bước xét phê duyệt vượt hạn mức (`approval_used`) hoặc bị guard chặn
+    do phê duyệt không hợp lệ (`invalid_or_missing_approval`) / vượt trần hoàn tự động khách hàng trong ngày (`customer_daily_cap_exceeded`)."""
+    if not trials:
+        return 0.0
+    hits = 0
+    for t in trials:
+        evs = t.get("events") or []
+        if any(e.get("type") == "approval_used" or (
+            e.get("type") == "guard" and e.get("kind") in ("invalid_or_missing_approval", "customer_daily_cap_exceeded")
+        ) for e in evs):
+            hits += 1
+    return hits / len(trials)
+
+
+def staff_recheck_rate(trials):
+    """Tỉ lệ quyết định tự động (refunded/denied) bị nhân viên CSKH phải kiểm lại (`review_kind == 'recheck'`)."""
+    auto = [t for t in trials if t.get("status") in ("refunded", "denied")]
+    if not auto:
+        return 0.0
+    return sum(t.get("review_kind") == "recheck" for t in auto) / len(auto)
+
+
+def max_queue_wait_minutes(trials):
+    """Thời gian chờ người duyệt lâu nhất trong ca (phút)."""
+    waits = [t["queue_wait_min"] for t in trials if t.get("queue_wait_min") is not None]
+    return max(waits, default=0.0)
+
+
 MONITORS = {
     "escalation_rate": escalation_rate,     # có sẵn; KHÔNG tính là metric mới của đội
+    "approval_or_cap_risk_rate": approval_or_cap_risk_rate,
+    "staff_recheck_rate": staff_recheck_rate,
+    "max_queue_wait_minutes": max_queue_wait_minutes,
 }
 STARTER_MONITORS = ("escalation_rate",)
