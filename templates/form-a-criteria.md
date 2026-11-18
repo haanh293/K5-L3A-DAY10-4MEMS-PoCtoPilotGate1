@@ -80,9 +80,9 @@ nhau chia cho số lần chạy có sự kiện `proposal`; lần chạy không 
 
 ### Câu 1.5 · Chọn MỘT kết luận và giải thích một câu
 
-Số minh hoạ trong đề (không phải số của bàn). Khoanh: **(a) · (b) · (c) · (d)**
+Số minh hoạ trong đề (không phải số của bàn). Khoanh: **(b)**
 
-Giải thích một câu: …
+Giải thích một câu: Vì kết quả của Y (1,0) vẫn nằm trọn trong khoảng tin cậy 95% của X ([0,9400; 1,0]), sự chênh lệch 1/50 lần chạy hoàn toàn có thể do biến thiên ngẫu nhiên của mẫu thử.
 
 ---
 
@@ -163,8 +163,8 @@ git add config/acceptance_criteria.json config/acceptance_criteria.lock && git c
 
 | Mục | Điền |
 |---|---|
-| Đã ký lúc (giờ máy in hoặc `signed_at` trong `config/acceptance_criteria.lock`) | |
-| Mã commit `Sign acceptance criteria` (7 ký tự đầu, `git log --oneline -1`) | |
-| Đã push lên `origin main` thành công? | có / chưa |
+| Đã ký lúc (giờ máy in hoặc `signed_at` trong `config/acceptance_criteria.lock`) |2026-11-18T15:26:05 |
+| Mã commit `Sign acceptance criteria` (7 ký tự đầu, `git log --oneline -1`) |72eca32 |
+| Đã push lên `origin main` thành công? | có|
 
 Sau bước này **không sửa** `config/acceptance_criteria.json`, kể cả mở rồi lưu lại bằng trình soạn thảo tự định dạng.
