@@ -1,12 +1,17 @@
 {
-  "team": "",
-  "members": [],
-  "incident": "",
-  "decision_v1": "",
-  "decision_v2": "",
+  "team": "K5-L3A-DAY10-4MEMS-PoCtoPilotGate1",
+  "members": [
+    "NguyenHaAnh-2A202603605",
+    "TranThanhNam-2A202603564",
+    "DoDacDuy-2A202603604",
+    "LeXuanHa-2A202603571"
+  ],
+  "incident": "S8",
+  "decision_v1": "Tiếp tục",
+  "decision_v2": "Tiếp tục",
   "three_lines": {
-    "environment_assumption": "",
-    "reduce_or_prevent": "",
-    "measure_in_pilot": ""
+    "environment_assumption": "Thiết kế đang giả định mỗi khách hàng thực tế chỉ tương ứng với một mã customer_id duy nhất và các bản ghi phê duyệt hợp lệ trong bảng approvals phản ánh đúng ý chí của trưởng ca NV-HANH, nhưng ngoài thực tế người dùng có thể tạo nhiều tài khoản để lách trần 300.000đ/khách/ngày hoặc nhân viên duyệt có thể thao tác cấp nhầm mã phê duyệt trên hệ thống nội bộ.",
+    "reduce_or_prevent": "Cổng _valid_approval trong write_gate NGĂN hẳn việc trợ lý tự hoàn tiền bằng mã phê duyệt đã dùng, hết hạn, bị thu hồi, sai đơn hoặc vượt max_vnd vì nó kiểm tra tất định trên nguồn sự thật trước mọi lệnh ghi sổ cái; tuy nhiên cổng trần 300.000đ/khách/ngày và cổng cấu hình niềm tin (decision_note = true, review_sampling_pct = 10) chỉ GIẢM khả năng thiệt hại và ùn tắc hàng chờ vì vẫn phụ thuộc vào việc định danh tài khoản khách hàng và biến động lưu lượng ticket thực tế trong ca.",
+    "measure_in_pilot": "Trong 2 tuần pilot thật trước Gate 2 (và trước ngày 2026-12-01 khi REFUND-v4 hạ hạn mức tự hoàn xuống 100.000đ), cần đo lại thời gian thực tế nhân viên đọc decision_note để kiểm mẫu một ca (có đúng bằng 4 phút = 0.4 ca không), tỷ lệ đồng thuận giữa quyết định tự động của trợ lý với kết quả hậu kiểm của NV-HANH/NV-OANH, và phân phối số lượng ticket đến theo từng khung giờ cao điểm để chốt số người trực mỗi ca."
   }
 }
