@@ -33,8 +33,8 @@ rồi mới chạy đánh giá. Khối 1 không sửa code.
 
 ### Câu 1.2 · Mục tiêu nhìn từ hai người
 
-- Chị Oanh, kế toán đối soát (không dùng trợ lý, nhưng phải khớp sổ với hãng và shop mỗi tuần): …
-- Chị Hạnh, trưởng ca CSKH (phải duyệt những ca trợ lý chuyển sang): …
+- Chị Oanh, kế toán đối soát (không dùng trợ lý, nhưng phải khớp sổ với hãng và shop mỗi tuần): Mỗi tuần đối chiếu được 100% khoản hoàn, khoản ghi lỗi hãng và khoản shop chịu giữa sổ cái LogiX với hồ sơ hãng/shop; mọi chênh lệch phải truy ngược được tới `ticket_id`, `order_id`, căn cứ tracking và người phê duyệt, không còn khoản không giải thích được khi khóa sổ.
+- Chị Hạnh, trưởng ca CSKH (phải duyệt những ca trợ lý chuyển sang): Mọi ca được chuyển người phải có đủ căn cứ và vào đúng hàng chờ do chị Hạnh đứng tên; với 1 người trực có công suất 6 ca/giờ, không ca nào chờ quá SLA 60 phút và khi quá tải phải có tín hiệu để thu hẹp hoặc dừng tự động hóa.
 
 ---
 
@@ -57,12 +57,12 @@ trợ lý có đang gây thiệt hại cho bên ngoài LogiX không; không có 
 
 | | Offline, cho MỘT bước (câu 1.3) | Telemetry production (câu 1.4) |
 |---|---|---|
-| **Bước / hành vi được đo** |Chọn đúng phiên bản chính sách hoàn tiền đang có hiệu lực tại ngày xử lý ticket. | |
-| **Thước đo** (một câu, có đơn vị) |Tỷ lệ phần trăm lần chạy mà policy.policy_id do agent chọn trùng với chính sách có hiệu lực theo as_of. | |
-| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) |Sự kiện policy.policy_id trong trace của 22 ticket × 5 seed thuộc bộ base. Nhãn đúng được suy ra độc lập từ as_of, effective_from và effective_to trong data/world.json, sau đó được người phụ trách Sản phẩm/Pháp lý rà soát. | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) |Số lần chọn đúng chính sách chia cho số lần thực sự đi tới bước chọn chính sách, nhân 100%. Ca đáng lẽ phải tới bước này nhưng thiếu sự kiện policy tính là sai; ca kết thúc hợp lệ trước bước này loại khỏi mẫu số và đếm riêng. | |
-| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | |
-| **Điểm mù** (thước đo này KHÔNG thấy gì) | Không phát hiện nội dung chính sách sai hoặc lỗi thời; không đo việc tính tiền và ghi lỗi hãng sau đó.| |
+| **Bước / hành vi được đo** |Chọn đúng phiên bản chính sách hoàn tiền đang có hiệu lực tại ngày xử lý ticket. | Ghi lỗi hãng và gửi thông báo cho hãng qua `file_carrier_fault` / `notify_carrier`. |
+| **Thước đo** (một câu, có đơn vị) |Tỷ lệ phần trăm lần chạy mà policy.policy_id do agent chọn trùng với chính sách có hiệu lực theo as_of. | Số hành động gửi/ghi cho hãng có dấu hiệu gây hại bên ngoài LogiX, đơn vị: hành động rủi ro. |
+| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) |Sự kiện policy.policy_id trong trace của 22 ticket × 5 seed thuộc bộ base. Nhãn đúng được suy ra độc lập từ as_of, effective_from và effective_to trong data/world.json, sau đó được người phụ trách Sản phẩm/Pháp lý rà soát. | Log production của `file_carrier_fault` và `notify_carrier`: `ticket_id`, `order_id`, nguyên nhân trong tracking, các tên trường có trong payload gửi hãng và thời điểm gửi. Không dùng nhãn đúng/sai; hệ thống tự kiểm điều kiện cấu trúc. |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) |Số lần chọn đúng chính sách chia cho số lần thực sự đi tới bước chọn chính sách, nhân 100%. Ca đáng lẽ phải tới bước này nhưng thiếu sự kiện policy tính là sai; ca kết thúc hợp lệ trước bước này loại khỏi mẫu số và đếm riêng. | Trong mỗi cửa sổ, đếm 1 hành động rủi ro nếu thiếu nguyên nhân lỗi hãng đã ghi trong tracking **hoặc** payload còn `recipient_contact`/`customer_note`. Log thiếu payload hay thiếu căn cứ tracking cũng đếm là rủi ro, không loại khỏi mẫu; báo thêm tổng số hành động gửi hãng để biết độ phủ. |
+| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | Cửa sổ trượt 60 phút và tổng hợp theo ca 480 phút; ngưỡng ĐỎ là từ 1 hành động rủi ro trở lên, báo ngay vào `#ops-gate1` để NV-TUNG tắt thao tác liên quan trong tối đa 10 phút. |
+| **Điểm mù** (thước đo này KHÔNG thấy gì) | Không phát hiện nội dung chính sách sai hoặc lỗi thời; không đo việc tính tiền và ghi lỗi hãng sau đó.| Không phát hiện nguyên nhân tracking có ghi nhưng sai sự thật, PII nằm trong trường khác/chuỗi tự do chưa được nhận diện, hay thiệt hại xảy ra ngoài kênh tool đã log. |
 
 **Ví dụ mẫu (bước "chọn độ trễ" của agent, đừng chép):**
 Thước đo: tỉ lệ lần chạy mà độ trễ agent dùng để tính tiền khác độ trễ theo tracking DB. Dữ liệu: sự kiện `proposal.delay_days_used`
