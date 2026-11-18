@@ -83,26 +83,26 @@ Ba loại lỗi:
 
 | # | Lỗi: người ta thấy gì (dán dòng trace / sổ cái) | Ai gặp, ai chịu | Hệ trọng (thấp / cao) | Loại lỗi (giới hạn hệ thống / ngữ cảnh / chìm) |
 |---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
+| 1 | `T-002@55`: trace `03 model_override` đổi `delay_days` từ DB `2` thành lời khách `5`; trace `06 issue_refund` và `SỔ CÁI` ghi hoàn `20.000đ`, trong khi `NHÃN` yêu cầu `denied`, hoàn `0đ`. | LogiX/Finance chịu mất tiền; NV-OANH chịu sai lệch khi đối soát sổ. | Cao | Lỗi chìm: hệ thống kết thúc `refunded` và báo thành công, không ai trong luồng nhận ra khoản hoàn sai. |
+| 2 | `T-002@55`: trace `07 file_carrier_fault` và `08 notify_carrier` ghi VNX trễ `5` ngày, trong khi trace `02 tracking` chỉ ghi `2` ngày và `NHÃN` yêu cầu `faults: []`. | Hãng VNX và tài xế `TX-VNX-03` bị quy trách nhiệm sai; bộ phận đối soát phải xử lý bản ghi sai. | Cao | Lỗi chìm: lỗi hãng đã được ghi và gửi ra bên thứ ba mà hệ thống không phát cảnh báo. |
 
 ### Phần 2 · Tìm nguồn (đánh dấu câu nào đúng với từng lỗi)
 
 | Câu hỏi | Lỗi 1 | Lỗi 2 |
 |---|---|---|
-| **Đầu vào:** hệ thống có tự diễn giải / sửa đầu vào của người dùng theo cách họ không lường? Có đặt sai trọng số cho một lời nói hay tín hiệu của người dùng? | | |
-| **Độ liên quan:** hệ thống có thiếu dữ liệu cần để quyết đúng? Dữ liệu vào có nhiễu, thiếu ổn định? | | |
-| **Thứ bậc hệ thống:** có hai hệ thống cùng ghi / cùng theo dõi một thứ mà không rõ bên nào là chủ (ví dụ CSKH hoàn tay và trợ lý cùng ghi sổ)? | | |
-| **Trạng thái hỏng:** nhiều lỗi cộng lại có làm tính năng không dùng được (ví dụ LLM lỗi liên tiếp)? | | |
+| **Đầu vào:** hệ thống có tự diễn giải / sửa đầu vào của người dùng theo cách họ không lường? Có đặt sai trọng số cho một lời nói hay tín hiệu của người dùng? | **Có:** `trust_claim: true` đặt lời khách khai `5` ngày cao hơn tracking DB `2` ngày. | **Có:** số ngày tự khai tiếp tục được dùng trong bản ghi và thông báo gửi hãng. |
+| **Độ liên quan:** hệ thống có thiếu dữ liệu cần để quyết đúng? Dữ liệu vào có nhiễu, thiếu ổn định? | **Có nhiễu, không thiếu dữ liệu:** tracking chính thức đã có `db_delay_days: 2`, nhưng lời khách khai `5` ngày là tín hiệu không được xác minh. | **Có nhiễu, không thiếu dữ liệu:** `cause: CARRIER` và độ trễ `2` ngày đã được ghi nhận, nhưng hành động lại dùng số `5` từ ticket. |
+| **Thứ bậc hệ thống:** có hai hệ thống cùng ghi / cùng theo dõi một thứ mà không rõ bên nào là chủ (ví dụ CSKH hoàn tay và trợ lý cùng ghi sổ)? | **Không có bằng chứng:** trace chỉ cho thấy trợ lý ghi một khoản hoàn; nguồn sự thật về độ trễ vẫn là tracking DB. | **Không có bằng chứng:** không có hệ thống thứ hai cùng ghi lỗi hãng trong trace; sai lệch đến từ việc bỏ qua tracking. |
+| **Trạng thái hỏng:** nhiều lỗi cộng lại có làm tính năng không dùng được (ví dụ LLM lỗi liên tiếp)? | **Không:** luồng chạy hoàn tất; một quyết định sai từ `model_override` làm kết quả sai. | **Không:** công cụ vẫn hoạt động, nhưng truyền tiếp dữ liệu sai sang hai lệnh ghi/gửi hãng. |
 
 ### Phần 3 · Hướng xử lý (mỗi lỗi một ô)
 
 | | Lỗi 1 | Lỗi 2 |
 |---|---|---|
-| Vì sao người gặp coi đây là lỗi | | |
-| Kiểu giải pháp: phản hồi cho người dùng / trao quyền kiểm soát cho người / khác | | |
-| Đường đi của người sau khi có giải pháp (ví dụ: ticket chuyển sang người duyệt → duyệt → khách được trả lời) | | |
-| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | | |
+| Vì sao người gặp coi đây là lỗi | LogiX đã chi `20.000đ` không đúng quyền lợi, làm sổ cái khác nhãn chuẩn `0đ` và tạo việc đối soát ngoài dự kiến. | VNX bị ghi và thông báo trễ `5` ngày dù tracking chỉ có `2` ngày; bản ghi sai ảnh hưởng hãng và tài xế. |
+| Kiểu giải pháp: phản hồi cho người dùng / trao quyền kiểm soát cho người / khác | **Khác + trao quyền kiểm soát cho người:** guard lấy độ trễ từ tracking, chặn `issue_refund` khi lời khai khác DB và chuyển NV-HANH duyệt. | **Khác + trao quyền kiểm soát cho người:** guard đối chiếu `delay_days` với tracking trước `file_carrier_fault`/`notify_carrier`; nếu lệch thì chặn và chuyển duyệt. |
+| Đường đi của người sau khi có giải pháp (ví dụ: ticket chuyển sang người duyệt → duyệt → khách được trả lời) | Phát hiện `5 ≠ 2` → không ghi hoàn tiền → chuyển NV-HANH kiểm tra tracking và chính sách → duyệt hoặc từ chối → trả lời khách bằng kết quả đã xác minh. | Phát hiện số ngày gửi hãng khác tracking → không ghi/không gửi hãng → người duyệt kiểm tra nguyên nhân và kiện hàng → chỉ ghi, thông báo khi dữ liệu hợp lệ. |
+| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | `model_override_rate`: tỷ lệ lần chạy mà số ngày model dùng khác `db_delay_days`; theo dõi số ca bị guard chặn/chuyển duyệt. | `carrier_delay_mismatch_rate`: tỷ lệ bản ghi hoặc thông báo hãng có `delay_days` khác tracking DB. |
 
 **Ví dụ (bộ nền, đừng chép):** `T-002@55` · sổ cái có dòng hoàn 20.000đ, hãng VNX nhận một lỗi, trong khi tracking ghi trễ 2 ngày ·
 khách không thấy gì sai, hãng chịu · cao · **lỗi chìm**. Nguồn: đầu vào (đặt sai trọng số cho con số khách tự khai). Xử lý:
@@ -286,8 +286,8 @@ python3 -m unittest discover -s tests
 Bàn đang chỉnh cổng tới khi 22 ticket bộ nền xanh hết. Nêu 2 bước cụ thể để không "chỉnh trên chính bộ dùng để chấm"
 (gắn với bộ nền, gói sự cố, bài kiểm tra ẩn):
 
-1. …
-2. …
+1. Với 22 ticket `base`, chỉ sửa theo tính chất tổng quát và nguồn sự thật (tracking, chính sách, quyền lợi), rồi dùng lại `base` để bắt hồi quy; tuyệt đối không rẽ nhánh theo mã ticket, seed hay câu chữ cụ thể. Tạo thêm ticket `--adhoc` có đơn, khách và cách diễn đạt mới để kiểm rằng cổng không chỉ “học thuộc” bộ nền.
+2. Chốt bản cổng vòng 1 trước khi mở gói sự cố; khi nhận thẻ, chạy mốc `prepared` và lưu kết quả trước mọi chỉnh sửa để gói sự cố là phép kiểm độc lập ban đầu. Sau khi sửa vòng 2, chạy lại cả gói sự cố lẫn `base`, còn bài kiểm tra ẩn của team chấm phải được giữ kín làm kiểm định cuối—không suy đoán hay mã hoá riêng cho hidden test.
 
 ### B7.3 · Câu 2.8 · Một behavioral test
 
